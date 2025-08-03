@@ -1,1 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <link rel="stylesheet" href="mujeres.css" />
+    <title>Registro de Mujeres</title>
+</head>
+<body>
+    <div class="container">
+        <h2>Registrar Nueva Mujer</h2>
+        <form id="formulario">
+            <div>
+                <label for="foto">Foto</label>
+                <input type="file" id="foto" accept="image/*" />
+                <img id="preview" class="preview" src="" alt="" />
+            </div>
+            <div>
+                <label for="nombre">Nombre</label>
+                <input type="text" id="nombre" required />
+            </div>
+            <div>
+                <label for="apellido">Apellido</label>
+                <input type="text" id="apellido" required />
+            </div>
+            <div>
+                <label for="cumple">Cumpleaños</label>
+                <input type="date" id="cumple" required />
+            </div>
+            <div>
+                <label>Edad</label>
+                <input type="text" id="edad" class="readonly" readonly />
+            </div>
+            <div>
+                <label for="contacto">Número de contacto</label>
+                <input type="tel" id="contacto" required />
+            </div>
+            <div>
+                <label for="estado">Estado civil</label>
+                <select id="estado">
+                    <option value="casada">Casada</option>
+                    <option value="separada">Separada</option>
+                    <option value="soltera">Soltera</option>
+                    <option value="en pareja">En pareja</option>
+                </select>
+            </div>
+            <div>
+                <label for="hijos">Hijos</label>
+                <input type="number" id="hijos" min="0" />
+            </div>
+            <div>
+                <label for="grupo">Grupo asignado</label>
+                <select id="grupo">
+                    <option value="Solo reuniones">Solo reuniones</option>
+                    <option value="No quiere participar en un discipulado">No quiere participar en un discipulado</option>
+                    <option value="1">Grupo 1</option>
+                    <option value="2">Grupo 2</option>
+                    <option value="3">Grupo 3</option>
+                    <option value="4">Grupo 4</option>
+                    <option value="5">Grupo 5</option>
+                    <option value="6">Grupo 6</option>
+                    <option value="7">Grupo 7</option>
+                    <option value="8">Grupo 8</option>
+                    <option value="9">Grupo 9</option>
+                    <option value="10">Grupo 10</option>
+                    <option value="11">Grupo 11</option>
+                    <option value="12">Grupo 12</option>
+                    <option value="13">Grupo 13</option>
+                    <option value="14">Grupo 14</option>
+                    <option value="15">Grupo 15</option>
+                </select>
+            </div>
+            <div class="full-width">
+                <button type="submit">Guardar Datos</button>
+            </div>
+        </form>
 
+        <div class="section">
+            <h2>Mujeres Registradas</h2>
+
+            <div class="group">
+                <button class="toggle-btn" onclick="toggleTable('tablaTodas')">Todas las mujeres</button>
+                <table id="tablaTodas">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Cumpleaños</th>
+                            <th>Edad</th>
+                            <th>Estado Civil</th>
+                            <th>Hijos</th>
+                            <th>Número de Contacto</th>
+                            <th>Grupo Asignado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="group">
+                <button class="toggle-btn" onclick="toggleTable('tablaSoloReuniones')">Solo reuniones</button>
+                <table id="tablaSoloReuniones">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Cumpleaños</th>
+                            <th>Edad</th>
+                            <th>Estado Civil</th>
+                            <th>Hijos</th>
+                            <th>Número de Contacto</th>
+                            <th>Grupo Asignado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <div class="group">
+                <button class="toggle-btn" onclick="toggleTable('tablaNoDiscipulado')">No quiere participar en un discipulado</button>
+                <table id="tablaNoDiscipulado">
+                    <thead>
+                        <tr>
+                            <th>Foto</th>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Cumpleaños</th>
+                            <th>Edad</th>
+                            <th>Estado Civil</th>
+                            <th>Hijos</th>
+                            <th>Número de Contacto</th>
+                            <th>Grupo Asignado</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <!-- Grupos 1 al 15 generados automáticamente -->
+            <div class="group">
+                <script>
+                    for (let i = 1; i <= 15; i++) {
+                        document.write(`
+                        <div class="group">
+                            <button class="toggle-btn" onclick="toggleTable('tabla${i}')">Grupo ${i}</button>
+                            <table id="tabla${i}">
+                                <thead>
+                                    <tr>
+                                        <th>Foto</th>
+                                        <th>Nombre</th>
+                                        <th>Apellido</th>
+                                        <th>Cumpleaños</th>
+                                        <th>Edad</th>
+                                        <th>Estado Civil</th>
+                                        <th>Hijos</th>
+                                        <th>Número de Contacto</th>
+                                        <th>Grupo Asignado</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>`);
+                    }
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <script src="mujeres.js"></script>
+</body>
+</html>
