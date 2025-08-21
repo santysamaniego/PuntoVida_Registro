@@ -1,3 +1,5 @@
+
+
 const cumpleInput = document.getElementById('cumple');
 const edadInput = document.getElementById('edad');
 const fotoInput = document.getElementById('foto');
@@ -62,7 +64,8 @@ form.addEventListener('submit', function (e) {
   edadInput.value = '';
 });
 
-// Función para agregar filtros y botones PDF
+
+// Función para agregar filtros y botones PDF (igual que antes, pero sin difusión)
 function agregarFiltros(tablaId) { 
   const tabla = document.getElementById(tablaId);
   const container = tabla.parentElement;
@@ -89,17 +92,17 @@ function agregarFiltros(tablaId) {
     const grupoNombre = tablaId === 'tablaTodas' ? 'Todas las mujeres' :
                         tablaId === 'tablaSoloReuniones' ? 'Solo reuniones' :
                         tablaId === 'tablaNoDiscipulado' ? 'No quiere participar en un discipulado' :
-                        tablaId.startsWith('tablaDifusionGrupo') ? `Difusión ${tablaId.replace('tablaDifusionGrupo','Grupo ')}` :
-                        `Grupo ${tablaId.replace('tabla','')}`;
-
-    const pdfBtn = document.createElement('button');
-    pdfBtn.textContent = 'Descargar PDF';
-    pdfBtn.className = 'pdf-btn';
-    pdfBtn.style.marginLeft = 'auto';
+                        `Grupo ${tablaId.replace('tabla', '')}`;
 
     if (tablaId === 'tablaTodas') {
       const contenedor = document.createElement('div');
       contenedor.style.position = 'relative';
+
+      const btnPrincipal = document.createElement('button');
+      btnPrincipal.textContent = 'Descargar PDF';
+      btnPrincipal.className = 'pdf-btn';
+      btnPrincipal.style.marginLeft = 'auto';
+
       const menu = document.createElement('div');
       menu.style.position = 'absolute';
       menu.style.top = '110%';
@@ -132,15 +135,19 @@ function agregarFiltros(tablaId) {
       menu.appendChild(opcion1);
       menu.appendChild(opcion2);
 
-      pdfBtn.onclick = (e) => {
+      btnPrincipal.onclick = (e) => {
         e.stopPropagation();
         menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
       };
 
-      contenedor.appendChild(pdfBtn);
+      contenedor.appendChild(btnPrincipal);
       contenedor.appendChild(menu);
       header.appendChild(contenedor);
     } else {
+      const pdfBtn = document.createElement('button');
+      pdfBtn.textContent = 'Descargar PDF';
+      pdfBtn.className = 'pdf-btn';
+      pdfBtn.style.marginLeft = 'auto';
       pdfBtn.onclick = () => generarPDF(tablaId, grupoNombre);
       header.appendChild(pdfBtn);
     }
@@ -180,7 +187,7 @@ function agregarFiltros(tablaId) {
   }
 }
 
-// Configuración inicial al cargar la página
+// Al cargar la página, configurar tablas fijas sin difusión
 window.addEventListener('DOMContentLoaded', () => {
   const tablas = [
     'tablaTodas',
@@ -190,7 +197,8 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // Agregar tablas de grupo y difusión (1 al 15)
   for (let i = 1; i <= 15; i++) {
-    tablas.push(`tabla${i}`, `tablaDifusionGrupo${i}`);
+    tablas.push(`tabla${i}`);
+    tablas.push(`tablaDifusionGrupo${i}`);
   }
 
   tablas.forEach(id => {
@@ -213,206 +221,611 @@ window.addEventListener('DOMContentLoaded', () => {
   // Renderizar todas las tablas
   renderTablas();
 });
-// Renderizar tablas según grupo, orden y filtro de texto
+
+
+// Renderizar tablas con datos filtrados y ordenados
 function renderTablas(tablaId = null, orden = 'az', filtroTexto = '') {
   const tablas = ['tablaTodas', 'tablaSoloReuniones', 'tablaNoDiscipulado'];
   for (let i = 1; i <= 15; i++) {
     tablas.push(`tabla${i}`, `tablaDifusionGrupo${i}`);
   }
+  tablas.push('difusion_soloreu', 'difusion_nodiscip', 'tablaDifusionTodas'); // Nueva tabla de difusión general
 
   tablas.forEach(id => {
+    if (tablaId && id !== tablaId) return;
     const tabla = document.getElementById(id);
     if (!tabla) return;
 
-    let dataFiltrada = registros.slice();
+    const tbody = tabla.querySelector('tbody');
+    let grupo = null;
 
+    // Determinar el tipo de tabla y qué registros mostrar
     if (id === 'tablaTodas') {
-      if (filtroTexto) {
-        dataFiltrada = dataFiltrada.filter(r =>
-          Object.values(r).some(val =>
-            String(val).toLowerCase().includes(filtroTexto)
-          )
-        );
-      }
+      grupo = null; // Todas las mujeres normales
     } else if (id === 'tablaSoloReuniones') {
-      dataFiltrada = dataFiltrada.filter(r => r.grupo === 'Solo reuniones');
+      grupo = 'solo reuniones';
     } else if (id === 'tablaNoDiscipulado') {
-      dataFiltrada = dataFiltrada.filter(r => r.grupo === 'No quiere participar en un discipulado');
+      grupo = 'no quiere participar en un discipulado';
+    } else if (id === 'tablaDifusionTodas') {
+      grupo = 'difusion todas'; // Mostrar todas las mujeres en difusión
     } else if (id.startsWith('tablaDifusionGrupo')) {
-      const n = id.replace('tablaDifusionGrupo','');
-      dataFiltrada = dataFiltrada.filter(r => r.grupo === `Difusión Grupo ${n}`);
+      const num = id.replace('tablaDifusionGrupo','').trim();
+      grupo = `difusión grupo ${num}`;
+    } else if (id.startsWith('difusion')) {
+      grupo = id.replace('difusion_', 'difusión ').replace('grupo', 'grupo ');
     } else {
-      const n = id.replace('tabla','');
-      dataFiltrada = dataFiltrada.filter(r => r.grupo === `Grupo ${n}`);
+      const num = id.replace('tabla', '');
+      grupo = `grupo ${num}`;
     }
 
-    if (orden === 'az') dataFiltrada.sort((a,b) => a.nombre.localeCompare(b.nombre));
-    if (orden === 'za') dataFiltrada.sort((a,b) => b.nombre.localeCompare(a.nombre));
-    if (orden === 'ultimas') dataFiltrada.sort((a,b) => b.fechaRegistro - a.fechaRegistro);
-    if (orden === 'primeras') dataFiltrada.sort((a,b) => a.fechaRegistro - b.fechaRegistro);
+    // Filtrar registros según grupo o difusión
+    let datos = registros.filter(p => {
+      const grupoActual = (p.grupo || '').toLowerCase();
 
-    const tbody = tabla.querySelector('tbody');
-    tbody.innerHTML = '';
-
-    dataFiltrada.forEach((r, index) => {
-      const tr = document.createElement('tr');
-
-      tr.innerHTML = `
-        <td class="foto-cell">
-          <img src="${r.foto}" class="foto-thumb"/>
-          <span class="edit-foto">✏️</span>
-        </td>
-        <td>${r.nombre}</td>
-        <td>${r.apellido}</td>
-        <td>${r.cumple}</td>
-        <td>${r.edad}</td>
-        <td class="contacto-cell">
-          ${r.contacto} <span class="edit-contacto">✏️</span>
-        </td>
-        <td>${r.estado}</td>
-        <td>${r.hijos}</td>
-        <td class="grupo-cell">${r.grupo} <span class="edit-grupo">✏️</span></td>
-        <td class="direccion-cell">
-          ${r.direccion} <span class="edit-direccion">✏️</span>
-        </td>
-        <td><button class="delete-btn">🗑️</button></td>
-      `;
-      tbody.appendChild(tr);
-
-      // Alertar cumpleaños
-      const hoy = new Date();
-      const cumple = new Date(r.cumple);
-      if (cumple.getDate() === hoy.getDate() && cumple.getMonth() === hoy.getMonth()) {
-        tr.style.backgroundColor = '#fff0f0';
+      if (id === 'tablaTodas') return true;
+      else if (id === 'tablaSoloReuniones') return grupoActual === 'solo reuniones';
+      else if (id === 'tablaNoDiscipulado') return grupoActual === 'no quiere participar en un discipulado';
+      else if (id === 'tablaDifusionTodas') return grupoActual.startsWith('difusión'); // Todas las difusiones
+      else if (id.startsWith('tablaDifusionGrupo')) {
+        const num = id.replace('tablaDifusionGrupo','').trim();
+        return grupoActual === `difusión grupo ${num}`;
+      } else if (id.startsWith('difusion')) {
+        return grupoActual === id.replace('difusion_','difusión ');
+      } else {
+        const num = id.replace('tabla', '');
+        return grupoActual === `grupo ${num}`;
       }
-
-      // Editar contacto
-      tr.querySelector('.edit-contacto').addEventListener('click', () => {
-        const nuevo = prompt('Editar contacto:', r.contacto);
-        if (nuevo !== null) {
-          r.contacto = nuevo.trim();
-          renderTablas(tablaId, orden, filtroTexto);
-        }
-      });
-
-      // Editar direccion
-      tr.querySelector('.edit-direccion').addEventListener('click', () => {
-        const nuevo = prompt('Editar dirección:', r.direccion);
-        if (nuevo !== null) {
-          r.direccion = nuevo.trim();
-          renderTablas(tablaId, orden, filtroTexto);
-        }
-      });
-
-      // Editar grupo/difusión
-      tr.querySelector('.edit-grupo').addEventListener('click', () => {
-        let opciones = [];
-        for (let i = 1; i <= 15; i++) {
-          opciones.push(`Grupo ${i}`);
-          if (r.grupo.startsWith('Grupo ')) {
-            const n = r.grupo.replace('Grupo ','');
-            opciones.push(`Difusión Grupo ${n}`);
-          }
-        }
-        opciones.push('Solo reuniones', 'No quiere participar en un discipulado');
-
-        const nuevo = prompt(`Asignar a: \n${opciones.join('\n')}`, r.grupo);
-        if (nuevo && opciones.includes(nuevo)) {
-          r.grupo = nuevo;
-          renderTablas(tablaId, orden, filtroTexto);
-        }
-      });
-
-      // Editar foto
-      tr.querySelector('.edit-foto').addEventListener('click', () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'image/*';
-        fileInput.onchange = e => {
-          const file = e.target.files[0];
-          if (file) {
-            const reader = new FileReader();
-            reader.onload = ev => {
-              r.foto = ev.target.result;
-              renderTablas(tablaId, orden, filtroTexto);
-            };
-            reader.readAsDataURL(file);
-          }
-        };
-        fileInput.click();
-      });
-
-      // Eliminar registro
-      tr.querySelector('.delete-btn').addEventListener('click', () => {
-        if (confirm('¿Desea eliminar este registro?')) {
-          const idx = registros.indexOf(r);
-          if (idx > -1) registros.splice(idx,1);
-          renderTablas(tablaId, orden, filtroTexto);
-        }
-      });
     });
 
-    // Actualizar conteo
-    const toggleBtn = tabla.parentElement.querySelector('.toggle-btn');
-    if (toggleBtn) {
-      toggleBtn.textContent = `${toggleBtn.dataset.label} (${dataFiltrada.length})`;
+    // Filtro por texto solo en "Todas las mujeres"
+    if (id === 'tablaTodas' && filtroTexto) {
+      const texto = filtroTexto.toLowerCase();
+      datos = datos
+        .filter(p => p.nombre.toLowerCase().includes(texto) || p.apellido.toLowerCase().includes(texto) || p.contacto.toLowerCase().includes(texto) || (p.grupo || '').toLowerCase().includes(texto))
+        .map(p => {
+          let score = 0;
+          if (p.nombre.toLowerCase().startsWith(texto)) score += 10;
+          else if (p.nombre.toLowerCase().includes(texto)) score += 5;
+          if (p.apellido.toLowerCase().startsWith(texto)) score += 8;
+          else if (p.apellido.toLowerCase().includes(texto)) score += 4;
+          if ((p.grupo || '').toLowerCase().startsWith(texto)) score += 3;
+          else if ((p.grupo || '').toLowerCase().includes(texto)) score += 1;
+          if (p.contacto.toLowerCase().startsWith(texto)) score += 2;
+          return { ...p, score };
+        })
+        .sort((a,b) => b.score - a.score);
     }
+
+    // Ordenamiento
+    if (orden === 'az') datos.sort((a,b) => a.nombre.localeCompare(b.nombre));
+    else if (orden === 'za') datos.sort((a,b) => b.nombre.localeCompare(a.nombre));
+    else if (orden === 'ultimas') datos.sort((a,b) => b.fechaRegistro - a.fechaRegistro);
+    else if (orden === 'primeras') datos.sort((a,b) => a.fechaRegistro - b.fechaRegistro);
+
+    // Render filas
+    tbody.innerHTML = '';
+    datos.forEach(data => {
+      const fila = document.createElement('tr');
+      if (esCumpleanos(data.cumple)) fila.classList.add('cumpleanos');
+
+      fila.innerHTML = `
+        <td class="foto-cell">
+          <div class="foto-wrapper" style="position:relative;">
+            <img src="${data.foto}" alt="foto" style="width:60px;height:60px;border-radius:50%;object-fit:cover;">
+            <span class="edit-icon edit-foto" title="Editar foto">✏️</span>
+            <input type="file" accept="image/*" style="display:none;" class="input-foto" />
+          </div>
+        </td>
+        <td>${data.nombre}</td>
+        <td>${data.apellido}</td>
+        <td>${formatearFecha(data.cumple)}</td>
+        <td>${data.edad}</td>
+        <td>${data.estado}</td>
+        <td>${data.hijos}</td>
+        <td class="contacto-cell">${data.contacto}<span class="edit-icon edit-contacto">✏️</span></td>
+        <td class="direccion-cell">${data.direccion || ''}<span class="edit-icon edit-direccion">✏️</span></td>
+        <td class="grupo-cell">${data.grupo || 'Sin asignar'}<span class="edit-icon grupo-edit">✏️</span></td>
+        ${id !== 'tablaTodas' ? `<td><button class="btn-eliminar">🗑️</button></td>` : '<td></td>'}
+      `;
+      tbody.appendChild(fila);
+    });
+
+    agregarListenersEdicion();
   });
 }
 
-// Toggle de visibilidad de tablas
-document.querySelectorAll('.toggle-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    const targetId = btn.dataset.target;
-    const tabla = document.getElementById(targetId);
-    if (!tabla) return;
-    tabla.style.display = tabla.style.display === 'none' ? 'table' : 'none';
-    agregarFiltros(targetId);
-  });
-});
 
-// Generar PDF
-function generarPDF(tablaId, grupoNombre) {
-  const tabla = document.getElementById(tablaId);
-  if (!tabla) return;
 
-  const filas = Array.from(tabla.querySelectorAll('tbody tr'));
-  if (filas.length === 0) {
-    alert('No hay registros para exportar.');
+function toggleTabla(idTabla) {
+  // Buscar la tabla por ID
+  const tabla = document.getElementById(idTabla);
+  if (!tabla) {
+    console.warn(`La tabla con id "${idTabla}" no se encontró.`);
     return;
   }
 
-  let contenido = `<h2>${grupoNombre}</h2><table border="1" cellpadding="5" cellspacing="0" width="100%"><tr>`;
-  Array.from(tabla.querySelectorAll('thead th')).forEach(th => {
-    if (!th.textContent.includes('Eliminar')) contenido += `<th>${th.textContent}</th>`;
-  });
-  contenido += `</tr>`;
+  // Determinar si la tabla ya está visible
+  const estaVisible = tabla.style.display === 'table';
 
-  filas.forEach(fila => {
-    contenido += '<tr>';
-    Array.from(fila.querySelectorAll('td')).forEach(td => {
-      if (!td.querySelector('button')) {
-        contenido += `<td>${td.innerText}</td>`;
+  // Ocultar todas las tablas de grupos y difusiones
+  document.querySelectorAll('.contenedor-tabla').forEach(contenedor => {
+    contenedor.style.display = 'none';
+  });
+
+  // Si la tabla no estaba visible, mostrarla
+  if (!estaVisible) {
+    tabla.style.display = 'table';
+    console.log(`Se está mostrando la tabla: "${idTabla}"`);
+
+    // Manejar relación grupo ↔ difusión
+    const difusionMatch = idTabla.match(/^difusion_(.+)$/);
+    const grupoMatch = idTabla.match(/^tabla(\d+|SoloReu|NoDiscipulado)$/i);
+
+    if (difusionMatch) {
+      // Si es tabla de difusión, ocultar la tabla del grupo correspondiente
+      const grupoRelacionado = difusionMatch[1];
+      const idGrupo = grupoRelacionado === 'soloreu' ? 'tablaSoloReu' :
+                      grupoRelacionado === 'nodiscipulado' ? 'tablaNoDiscipulado' :
+                      `tabla${grupoRelacionado}`;
+      const tablaGrupo = document.getElementById(idGrupo);
+      if (tablaGrupo) {
+        tablaGrupo.style.display = 'none';
+        console.log(`Ocultando la tabla del grupo relacionado: "${idGrupo}"`);
       }
-    });
-    contenido += '</tr>';
-  });
-  contenido += '</table>';
-
-  const win = window.open('', '', 'width=900,height=700');
-  win.document.write('<html><head><title>PDF</title></head><body>');
-  win.document.write(contenido);
-  win.document.write('</body></html>');
-  win.document.close();
-  win.print();
-}
-
-// Generar PDF por grupos
-function generarPDFPorGrupos() {
-  for (let i = 1; i <= 15; i++) {
-    const tabla = document.getElementById(`tabla${i}`);
-    if (tabla && tabla.querySelector('tbody').children.length) {
-      generarPDF(`tabla${i}`, `Grupo ${i}`);
+    } else if (grupoMatch) {
+      // Si es tabla de grupo, ocultar su tabla de difusión correspondiente
+      const grupoNombre = grupoMatch[1].toLowerCase();
+      const idDifusion = grupoNombre === 'soloreu' ? 'difusion_soloreu' :
+                         grupoNombre === 'nodiscipulado' ? 'difusion_nodiscipulado' :
+                         `difusion_${grupoNombre}`;
+      const tablaDifusion = document.getElementById(idDifusion);
+      if (tablaDifusion) {
+        tablaDifusion.style.display = 'none';
+        console.log(`Ocultando la tabla de difusión relacionada: "${idDifusion}"`);
+      }
     }
+  } else {
+    // Si estaba visible, ocultarla
+    tabla.style.display = 'none';
+    console.log(`Se está ocultando la tabla: "${idTabla}"`);
   }
 }
+
+
+
+
+
+
+// Función para validar si es cumpleaños hoy
+function esCumpleanos(fechaStr) {
+  if (!fechaStr) return false;
+  const hoy = new Date();
+  const fecha = new Date(fechaStr);
+  return fecha.getDate() === hoy.getDate() && fecha.getMonth() === hoy.getMonth();
+}
+
+// -------------------------
+// EDICIÓN CON MODAL Y FOTO
+
+let registroEditando = null;
+let tipoEdicion = null;
+
+const modal = document.createElement('div');
+modal.id = 'modal-editar';
+modal.style.display = 'none';
+modal.innerHTML = `
+  <div class="modal-content">
+    <h3 id="modal-titulo"></h3>
+    <input type="text" id="modal-input" />
+    <select id="modal-select" style="display:none;">
+      <option value="Solo reuniones">Solo reuniones</option>
+      <option value="No quiere participar en un discipulado">No quiere participar en un discipulado</option>
+      <option value="Difusión">Difusión</option>
+      ${Array.from({length: 15}, (_, i) => `<option value="Grupo ${i+1}">Grupo ${i+1}</option>`).join('')}
+    </select>
+
+    <div class="modal-buttons">
+      <button id="modal-guardar">Guardar</button>
+      <button id="modal-cancelar">Cancelar</button>
+    </div>
+  </div>
+`;
+
+
+document.body.appendChild(modal);
+
+const modalTitulo = modal.querySelector('#modal-titulo');
+const modalInput = modal.querySelector('#modal-input');
+const modalSelect = modal.querySelector('#modal-select');
+const modalGuardar = modal.querySelector('#modal-guardar');
+const modalCancelar = modal.querySelector('#modal-cancelar');
+
+modalGuardar.onclick = () => {
+  if (!registroEditando) return;
+
+  if (tipoEdicion === 'contacto') {
+    registroEditando.contacto = modalInput.value.trim();
+  } else if (tipoEdicion === 'direccion') {
+    registroEditando.direccion = modalInput.value.trim();
+  } else if (tipoEdicion === 'grupo') {
+    let seleccion = modalSelect.value;
+
+    // Verificar si es difusión
+    const esDifusion = seleccion.toLowerCase().startsWith('difusion');
+
+    if (esDifusion) {
+      // Guardar en difusión correspondiente
+      registroEditando.grupo = seleccion.toLowerCase(); // ej: "difusion_grupo 1" o "difusion_soloreu"
+      console.log(`Asignado a difusión: ${registroEditando.grupo}`);
+    } else {
+      // Guardar en grupo regular
+      registroEditando.grupo = seleccion;
+      console.log(`Asignado a grupo: ${registroEditando.grupo}`);
+    }
+  }
+
+  modal.style.display = 'none';
+  registroEditando = null;
+  tipoEdicion = null;
+  renderTablas();
+};
+
+
+modalCancelar.onclick = () => {
+  modal.style.display = 'none';
+  registroEditando = null;
+  tipoEdicion = null;
+};
+
+function abrirModalEdicion(registro, tipo) {
+  registroEditando = registro;
+  tipoEdicion = tipo;
+
+  modalInput.style.display = 'block';
+  modalSelect.style.display = 'none';
+
+  if (tipo === 'contacto') {
+      modalTitulo.textContent = 'Editar número de contacto';
+      modalInput.value = registro.contacto;
+  } else if (tipo === 'direccion') {
+      modalTitulo.textContent = 'Editar dirección';
+      modalInput.value = registro.direccion || '';
+  } else if (tipo === 'grupo') {
+      modalTitulo.textContent = 'Editar grupo asignado';
+      modalInput.style.display = 'none';
+      modalSelect.style.display = 'block';
+
+      // Limpiar opciones existentes
+      modalSelect.innerHTML = '';
+
+      // Opciones generales de grupos
+      const gruposValidos = [
+          'Solo reuniones',
+          'No quiere participar en un discipulado',
+          ...Array.from({length: 15}, (_, i) => `Grupo ${i+1}`)
+      ];
+
+      gruposValidos.forEach(g => {
+          const option = document.createElement('option');
+          option.value = g;
+          option.textContent = g;
+          modalSelect.appendChild(option);
+      });
+
+      // Opción de difusión específica del grupo actual
+      const grupoActual = registro.grupo || 'Sin asignar';
+      let opcionDifusion = '';
+      if (grupoActual === 'Solo reuniones') opcionDifusion = 'Difusión Solo Reuniones';
+      else if (grupoActual === 'No quiere participar en un discipulado') opcionDifusion = 'Difusión No Discipulado';
+      else if (grupoActual.startsWith('Grupo')) opcionDifusion = `Difusión ${grupoActual}`;
+
+      if (opcionDifusion) {
+          const optionDif = document.createElement('option');
+          optionDif.value = opcionDifusion;
+          optionDif.textContent = opcionDifusion;
+          modalSelect.appendChild(optionDif);
+      }
+
+      modalSelect.value = grupoActual;
+  }
+
+  modal.style.display = 'flex';
+}
+
+
+// Agregar listeners para edición (contacto, dirección, grupo, foto)
+function agregarListenersEdicion() {
+  // Evitar agregar listeners duplicados quitándolos primero
+  document.querySelectorAll('.edit-contacto').forEach(el => {
+    el.replaceWith(el.cloneNode(true));
+  });
+  document.querySelectorAll('.edit-direccion').forEach(el => {
+    el.replaceWith(el.cloneNode(true));
+  });
+  document.querySelectorAll('.grupo-edit').forEach(el => {
+    el.replaceWith(el.cloneNode(true));
+  });
+  document.querySelectorAll('.edit-foto').forEach(el => {
+    el.replaceWith(el.cloneNode(true));
+  });
+
+  // Ahora agregar los listeners correctamente
+
+  document.querySelectorAll('.edit-contacto').forEach(el => {
+    el.onclick = e => {
+      e.stopPropagation();
+      const fila = el.closest('tr');
+      const nombre = fila.children[1].textContent;
+      const apellido = fila.children[2].textContent;
+      const registro = registros.find(r => r.nombre === nombre && r.apellido === apellido);
+      if (registro) abrirModalEdicion(registro, 'contacto');
+    };
+  });
+
+  document.querySelectorAll('.edit-direccion').forEach(el => {
+    el.onclick = e => {
+      e.stopPropagation();
+      const fila = el.closest('tr');
+      const nombre = fila.children[1].textContent;
+      const apellido = fila.children[2].textContent;
+      const registro = registros.find(r => r.nombre === nombre && r.apellido === apellido);
+      if (registro) abrirModalEdicion(registro, 'direccion');
+    };
+  });
+
+  document.querySelectorAll('.grupo-edit').forEach(el => {
+    el.onclick = e => {
+      e.stopPropagation();
+      const fila = el.closest('tr');
+      const nombre = fila.children[1].textContent;
+      const apellido = fila.children[2].textContent;
+      const registro = registros.find(r => r.nombre === nombre && r.apellido === apellido);
+      if (registro) abrirModalEdicion(registro, 'grupo');
+    };
+  });
+
+  // Editar foto
+  document.querySelectorAll('.foto-wrapper').forEach(wrapper => {
+    const editIcon = wrapper.querySelector('.edit-foto');
+    const inputFile = wrapper.querySelector('.input-foto');
+
+    // Eliminar listeners previos para evitar duplicados
+    editIcon.replaceWith(editIcon.cloneNode(true));
+    wrapper.querySelector('.edit-foto').onclick = (e) => {
+      e.stopPropagation();
+      inputFile.click();
+    };
+
+    inputFile.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = evt => {
+        const img = wrapper.querySelector('img');
+        img.src = evt.target.result;
+
+        // Actualizar en registros el nuevo src
+        const fila = wrapper.closest('tr');
+        const nombre = fila.children[1].textContent;
+        const apellido = fila.children[2].textContent;
+        const registro = registros.find(r => r.nombre === nombre && r.apellido === apellido);
+        if (registro) {
+          registro.foto = evt.target.result;
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+  });
+
+  // Botón eliminar de grupo: en realidad quita a la persona del grupo asignándole 'Sin asignar'
+document.querySelectorAll('.btn-eliminar').forEach(btn => {
+  btn.onclick = e => {
+    e.stopPropagation();
+    const fila = btn.closest('tr');
+    const nombre = fila.children[1].textContent;
+    const apellido = fila.children[2].textContent;
+    const grupoCell = fila.querySelector('.grupo-cell');
+    let grupo = '';
+    for (const node of grupoCell.childNodes) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        grupo += node.textContent;
+      }
+    }
+    grupo = grupo.trim();
+
+    // Solo procede si no es tabla "Todas las mujeres"
+    if (grupo === "Todas las mujeres") {
+      alert("No se puede eliminar desde la tabla 'Todas las mujeres'");
+      return;
+    }
+
+    // Cambiar grupo a 'Sin asignar' para quitarla del grupo actual sin borrar el registro
+    const registro = registros.find(r => r.nombre === nombre && r.apellido === apellido && r.grupo === grupo);
+    if (registro) {
+      registro.grupo = 'Sin asignar';
+      renderTablas();
+    }
+  };
+});
+
+
+}
+
+// Función para eliminar un registro de un grupo específico
+function eliminarDeGrupo(nombre, apellido, grupo) {
+  const idx = registros.findIndex(r => r.nombre === nombre && r.apellido === apellido && r.grupo === grupo);
+  if (idx !== -1) {
+    registros.splice(idx, 1);
+    renderTablas();
+  }
+}
+
+// Generar PDF (igual que antes)
+function generarPDF(tablaId, nombreGrupo) {
+  const tabla = document.getElementById(tablaId);
+  const filas = [...tabla.querySelectorAll('tbody tr')];
+  if (!filas.length) return alert('No hay datos para exportar');
+
+  const doc = new window.jspdf.jsPDF();
+  const rosa = [255, 105, 180]; // Color rosa para el diseño
+  const columnas = [
+      { header: "Nombre", dataKey: "nombre" },
+      { header: "Apellido", dataKey: "apellido" },
+      { header: "Cumpleaños", dataKey: "cumple" },
+      { header: "Edad", dataKey: "edad" },
+      { header: "Estado Civil", dataKey: "estado" },
+      { header: "Hijos", dataKey: "hijos" },
+      { header: "Contacto", dataKey: "contacto" },
+      { header: "Dirección", dataKey: "direccion" }
+  ];
+
+  const datos = filas.map(fila => {
+      const celdas = fila.querySelectorAll('td');
+      return {
+          nombre: celdas[1].textContent,
+          apellido: celdas[2].textContent,
+          cumple: celdas[3].textContent,
+          edad: celdas[4].textContent,
+          estado: celdas[5].textContent,
+          hijos: celdas[6].textContent,
+          contacto: celdas[7].textContent,
+          direccion: celdas[8].textContent
+      };
+  });
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(...rosa);
+  doc.setFontSize(18);
+  doc.text(nombreGrupo, 14, 16);
+
+  doc.autoTable({
+      startY: 20,
+      head: [columnas.map(c => c.header)],
+      body: datos.map(d => columnas.map(c => d[c.dataKey])),
+      styles: {
+          fontSize: 10,
+          cellPadding: 2,
+          overflow: 'linebreak',
+          textColor: 20,
+      },
+      headStyles: {
+          fillColor: rosa,
+          textColor: 255,
+          fontStyle: 'bold',
+      },
+      columnStyles: {
+          6: { cellWidth: 35 },
+          7: { cellWidth: 40 }
+      },
+      margin: { left: 14, right: 14 }
+  });
+
+  const yFinal = doc.lastAutoTable.finalY + 10;
+  const conteoTexto = `Total: ${filas.length} mujeres`;
+  const rectWidth = doc.getTextWidth(conteoTexto) + 14;
+  const rectHeight = 12;
+  doc.setFillColor(...rosa);
+  doc.roundedRect(14, yFinal, rectWidth, rectHeight, 3, 3, 'F');
+  doc.setTextColor(255);
+  doc.setFontSize(12);
+  doc.text(conteoTexto, 21, yFinal + 9);
+
+  doc.save(`${nombreGrupo}.pdf`);
+}
+
+// Generar PDF agrupado por grupos
+function generarPDFPorGrupos() {
+  const doc = new window.jspdf.jsPDF();
+  const rosa = [255, 105, 180];
+
+  const grupos = [
+    "Solo reuniones",
+    "No quiere participar en un discipulado",
+    ...Array.from({ length: 15 }, (_, i) => `Grupo ${i + 1}`)
+  ];
+
+  let total = 0;
+
+  grupos.forEach((grupo, index) => {
+    const datosGrupo = registros.filter(r => r.grupo === grupo);
+    if (datosGrupo.length === 0) return;
+
+    if (index > 0) doc.addPage();
+
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...rosa);
+    doc.setFontSize(16);
+    doc.text(grupo, 14, 16);
+
+    doc.autoTable({
+      startY: 20,
+      head: [[
+          "Nombre", "Apellido", "Cumpleaños", "Edad",
+          "Estado Civil", "Hijos", "Contacto", "Dirección"
+      ]],
+      body: datosGrupo.map(p => [
+          p.nombre,
+          p.apellido,
+          formatearFecha(p.cumple),
+          p.edad,
+          p.estado,
+          p.hijos,
+          p.contacto,
+          p.direccion || ''
+      ]),
+      styles: {
+          fontSize: 10,
+          cellPadding: 2,
+          textColor: 20,
+      },
+      headStyles: {
+          fillColor: rosa,
+          textColor: 255,
+          fontStyle: 'bold',
+      },
+      columnStyles: {
+          6: { cellWidth: 35 },
+          7: { cellWidth: 40 }
+      },
+      margin: { left: 14, right: 14 }
+    });
+
+    const yFinal = doc.lastAutoTable.finalY + 10;
+    const conteoTexto = `Total: ${datosGrupo.length} mujeres`;
+    const rectWidth = doc.getTextWidth(conteoTexto) + 14;
+
+    doc.setFillColor(...rosa);
+    doc.roundedRect(14, yFinal, rectWidth, 12, 3, 3, 'F');
+    doc.setTextColor(255);
+    doc.setFontSize(12);
+    doc.text(conteoTexto, 21, yFinal + 9);
+
+    total += datosGrupo.length;
+  });
+
+  doc.save(`Listado_por_Grupos.pdf`);
+}
+
+// Función para formatear fecha tipo "dd/mm/yyyy"
+function formatearFecha(fechaStr) {
+  if (!fechaStr) return '';
+  const d = new Date(fechaStr);
+  const dia = d.getDate().toString().padStart(2, '0');
+  const mes = (d.getMonth() + 1).toString().padStart(2, '0');
+  const anio = d.getFullYear();
+  return `${dia}/${mes}/${anio}`;
+}
+
+// Cerrar menú PDF si se hace clic fuera
+document.addEventListener('click', (e) => {
+  document.querySelectorAll('.pdf-btn + div').forEach(menu => {
+      if (!menu.contains(e.target) && !menu.previousSibling.contains(e.target)) {
+          menu.style.display = 'none';
+      }
+  });
+});
+
+
+
+
+
